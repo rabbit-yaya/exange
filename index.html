@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>四國貨幣匯率換算 (TWD/JPY/USD/KRW)</title>
+    <title>多國貨幣自由換算</title>
     <style>
         body {
             font-family: "Microsoft JhengHei", Arial, sans-serif;
@@ -13,24 +13,24 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
         }
 
         .converter-card {
             background: white;
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
         }
 
-        h2 { text-align: center; color: #333; margin-bottom: 0.5rem; margin-top: 0; }
+        h2 { text-align: center; color: #333; margin: 0 0 1rem 0; }
 
         /* 狀態列 */
         .status-bar {
             text-align: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             margin-bottom: 1rem;
             padding: 8px;
             border-radius: 5px;
@@ -38,276 +38,165 @@
             color: #666;
         }
 
-        /* 匯率設定區塊 */
+        /* 匯率設定區 */
         .rate-settings {
-            background-color: #f8f9fa;
-            border: 1px dashed #ccc;
+            background-color: #fcfcfc;
+            border: 1px solid #e0e0e0;
             padding: 10px;
             border-radius: 8px;
             margin-bottom: 1.5rem;
-            font-size: 0.9rem;
         }
         .rate-settings h3 {
-            margin: 0 0 10px 0;
-            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
             color: #555;
             text-align: center;
         }
-        .rate-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .rate-row span:first-child { min-width: 60px; } /* 對齊用 */
-        .rate-row input {
-            width: 80px;
-            padding: 3px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: bold;
-            color: #444;
+        
+        .rates-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.85rem;
         }
 
-        /* 輸入框樣式 */
-        .input-group { margin-bottom: 1.2rem; }
-        .input-group label {
-            display: block;
-            margin-bottom: 0.4rem;
-            color: #555;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        .input-wrapper {
+        .rate-item {
             display: flex;
             align-items: center;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 5px 10px;
-            transition: border-color 0.3s;
+            justify-content: space-between;
             background: #fff;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
         }
-        .input-wrapper:focus-within { border-color: #4a90e2; }
-        
-        .flag { font-size: 1.5rem; margin-right: 10px; }
-        .currency-code { font-weight: bold; color: #333; margin-right: 10px; min-width: 40px; }
-        
-        /* 主要輸入數字區 */
-        .main-input {
+        .rate-item input {
+            width: 70px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px;
+            font-size: 0.85rem;
+        }
+
+        /* 輸入列 */
+        .row-container {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 5px 10px;
+            transition: border-color 0.2s;
+        }
+        .row-container:focus-within {
+            border-color: #4a90e2;
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
+        }
+
+        .selector-area {
+            display: flex;
+            align-items: center;
+            min-width: 130px;
+            border-right: 1px solid #eee;
+            padding-right: 10px;
+            margin-right: 10px;
+        }
+
+        .flag-icon { font-size: 1.5rem; margin-right: 8px; }
+
+        select {
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+        }
+
+        input.amount-input {
             border: none;
             outline: none;
             width: 100%;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             text-align: right;
             color: #333;
+            background: transparent;
         }
 
-        /* 按鈕 */
         .refresh-btn {
             display: block;
-            margin: 0 auto;
-            background: none;
-            border: 1px solid #ccc;
-            padding: 5px 15px;
+            margin: 15px auto 0 auto;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 8px 20px;
             cursor: pointer;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            color: #666;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #555;
             transition: 0.2s;
         }
-        .refresh-btn:hover { background: #eee; color: #333; }
+        .refresh-btn:hover { background: #eee; color: #000; }
 
+        .hint { text-align: center; font-size: 0.75rem; color: #aaa; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="converter-card">
-    <h2>💱 匯率換算器</h2>
+    <h2>💱 全球貨幣自由換算</h2>
     
-    <div id="status" class="status-bar">準備連線...</div>
+    <div id="status" class="status-bar">連線中...</div>
 
     <div class="rate-settings">
-        <h3>📊 匯率設定 (基準: 1 美金)</h3>
-        <div class="rate-row">
-            <span>1 USD = </span>
-            <input type="number" id="rate-twd" value="32.5" oninput="updateRate('TWD')">
-            <span>TWD (台幣)</span>
-        </div>
-        <div class="rate-row">
-            <span>1 USD = </span>
-            <input type="number" id="rate-jpy" value="150.0" oninput="updateRate('JPY')">
-            <span>JPY (日幣)</span>
-        </div>
-        <div class="rate-row">
-            <span>1 USD = </span>
-            <input type="number" id="rate-krw" value="1450.0" oninput="updateRate('KRW')">
-            <span>KRW (韓元)</span>
-        </div>
-        <div style="text-align: center; margin-top:8px; font-size: 0.75rem; color: #888;">
-            (若連線失敗，可直接修改上方數字)
-        </div>
+        <h3>📊 匯率設定 (基準: 1 USD)</h3>
+        <div class="rates-grid" id="rates-container"></div>
+        <div class="hint">若連線失敗，可直接修改上方數字</div>
     </div>
 
-    <div class="input-group">
-        <label>新台幣 (TWD)</label>
-        <div class="input-wrapper">
-            <span class="flag">🇹🇼</span>
-            <span class="currency-code">TWD</span>
-            <input type="number" id="twd" class="main-input" placeholder="0" oninput="convert('twd')">
+    <div class="row-container">
+        <div class="selector-area">
+            <span class="flag-icon" id="flag-1">🇹🇼</span>
+            <select id="select-1" onchange="updateRow(1)"></select>
         </div>
+        <input type="number" id="input-1" class="amount-input" placeholder="0" oninput="convert(1)">
     </div>
 
-    <div class="input-group">
-        <label>日圓 (JPY)</label>
-        <div class="input-wrapper">
-            <span class="flag">🇯🇵</span>
-            <span class="currency-code">JPY</span>
-            <input type="number" id="jpy" class="main-input" placeholder="0" oninput="convert('jpy')">
+    <div class="row-container">
+        <div class="selector-area">
+            <span class="flag-icon" id="flag-2">🇯🇵</span>
+            <select id="select-2" onchange="updateRow(2)"></select>
         </div>
+        <input type="number" id="input-2" class="amount-input" placeholder="0" oninput="convert(2)">
     </div>
 
-    <div class="input-group">
-        <label>韓元 (KRW)</label>
-        <div class="input-wrapper">
-            <span class="flag">🇰🇷</span>
-            <span class="currency-code">KRW</span>
-            <input type="number" id="krw" class="main-input" placeholder="0" oninput="convert('krw')">
+    <div class="row-container">
+        <div class="selector-area">
+            <span class="flag-icon" id="flag-3">🇺🇸</span>
+            <select id="select-3" onchange="updateRow(3)"></select>
         </div>
-    </div>
-
-    <div class="input-group">
-        <label>美金 (USD)</label>
-        <div class="input-wrapper">
-            <span class="flag">🇺🇸</span>
-            <span class="currency-code">USD</span>
-            <input type="number" id="usd" class="main-input" placeholder="0" oninput="convert('usd')">
-        </div>
+        <input type="number" id="input-3" class="amount-input" placeholder="0" oninput="convert(3)">
     </div>
 
     <button class="refresh-btn" onclick="fetchRates()">🔄 重新抓取即時匯率</button>
 </div>
 
 <script>
-    // 預設匯率 (當沒網路時的備用值)
-    let rates = {
-        USD10m: ,
-        TWD32.57m: , 
-        JPY: 150.0,
-        KRW: 1450.0 // 新增韓元預設值
+    // --- 支援貨幣 ---
+    const currencies = {
+        TWD: { name: "新台幣", flag: "🇹🇼", rate: 32.5 },
+        JPY: { name: "日圓", flag: "🇯🇵", rate: USD15032m.032m },
+        : { name: "美金", flag: "🇺🇸", rate: 1.0 },
+        KRW: { name: "韓元", flag: "🇰🇷", rate: 1450.0 },
+        CNY: { name: "人民幣", flag: "🇨🇳", rate: EUR7115mm.22m },
+        : { name: "歐元", flag: "🇪🇺", rate: GBP0000mmm.920m },
+        : { name: "英鎊", flag: "🇬🇧", rate: 0.79 },
+        IDR: { name: "印尼盾", flag: "🇮🇩", rate: 15600.0 }
     };
 
-    const statusDiv = document.getElementById('status');
-    const rateInputTwd = document.getElementById('rate-twd');
-    const rateInputJpy = document.getElementById('rate-jpy');
-    const rateInputKrw = document.getElementById('rate-krw');
+    const defaultSelections = ['TWD', 'JPY', 'USD'];
 
-    // 1. 網頁開啟時嘗試抓取
     window.onload = function() {
-        fetchRates();
-    };
-
-    // 2. 抓取匯率 API
-    function fetchRates() {
-        statusDiv.innerHTML = "⏳ 正在連線取得最新匯率...";
-        statusDiv.style.background = "#eef";
-        statusDiv.style.color = "#666";
-
-        const apiUrl = 'https://api.exchangerate-api.com/v4/latest/USD';
-
-        fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) throw new Error("Network response was not ok");
-                return response.json();
-            })
-            .then(data => {
-                // 更新內部變數
-                rates.TWD = data.rates.TWD;
-                rates.JPY = data.rates.JPY;
-                rates.KRW = data.rates.KRW; // 抓取韓元
-
-                // 更新畫面上的「匯率設定」框框
-                rateInputTwd.value = rates.TWD.toFixed(2);
-                rateInputJpy.value = rates.JPY.toFixed(2);
-                rateInputKrw.value = rates.KRW.toFixed(2);
-
-                // 更新狀態列
-                const date = new Date(data.date);
-                statusDiv.innerHTML = `✅ 匯率更新成功 (${data.date})`;
-                statusDiv.style.background = "#e8f5e9";
-                statusDiv.style.color = "#2e7d32";
-                
-                // 觸發重新計算 (如果美金欄位有值)
-                if(document.getElementById('usd').value !== "") {
-                    convert('usd');
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-                statusDiv.innerHTML = `⚠️ 無法連線，請手動輸入上方匯率`;
-                statusDiv.style.background = "#ffebee";
-                statusDiv.style.color = "#c62828";
-            });
-    }
-
-    // 3. 手動修改匯率
-    function updateRate(currency) {
-        if(currency === 'TWD') rates.TWD = parseFloat(rateInputTwd.value);
-        if(currency === 'JPY') rates.JPY = parseFloat(rateInputJpy.value);
-        if(currency === 'KRW') rates.KRW = parseFloat(rateInputKrw.value);
-
-        // 修改後立即以美金欄位為基準重算
-        const currentUsd = document.getElementById('usd').value;
-        if(currentUsd) convert('usd');
-    }
-
-    // 4. 核心換算邏輯
-    function convert(source) {
-        const twdInput = document.getElementById('twd');
-        const jpyInput = document.getElementById('jpy');
-        const krwInput = document.getElementById('krw');
-        const usdInput = document.getElementById('usd');
-
-        let value = 0;
-        let amountInUSD = 0;
-
-        // 確保使用最新的設定匯率
-        rates.TWD = parseFloat(rateInputTwd.value) || 32.5;
-        rates.JPY = parseFloat(rateInputJpy.value) || 150.0;
-        rates.KRW = parseFloat(rateInputKrw.value) || 1450.0;
-
-        // 取得輸入值
-        if (source === 'twd') {
-            value = parseFloat(twdInput.value);
-            amountInUSD = value / rates.TWD;
-        } else if (source === 'jpy') {
-            value = parseFloat(jpyInput.value);
-            amountInUSD = value / rates.JPY;
-        } else if (source === 'krw') {
-            value = parseFloat(krwInput.value);
-            amountInUSD = value / rates.KRW;
-        } else if (source === 'usd') {
-            value = parseFloat(usdInput.value);
-            amountInUSD = value;
-        }
-
-        // 處理空值
-        if (isNaN(value)) {
-            if (source !== 'twd') twdInput.value = '';
-            if (source !== 'jpy') jpyInput.value = '';
-            if (source !== 'krw') krwInput.value = '';
-            if (source !== 'usd') usdInput.value = '';
-            return;
-        }
-
-        // 計算並填入其他欄位 (保留 2 位小數)
-        if (source !== 'twd') twdInput.value = (amountInUSD * rates.TWD).toFixed(2);
-        if (source !== 'jpy') jpyInput.value = (amountInUSD * rates.JPY).toFixed(2);
-        if (source !== 'krw') krwInput.value = (amountInUSD * rates.KRW).toFixed(2);
-        if (source !== 'usd') usdInput.value = (amountInUSD * rates.USD).toFixed(2);
-    }
-</script>
-
-</body>
-</html>
+        initRateInputs();
