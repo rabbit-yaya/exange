@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多國貨幣自由換算</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .converter-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h2 { text-align: center; color: #333; margin: 0 0 1rem 0; }
+
+        /* 狀態列 */
+        .status-bar {
+            text-align: center;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #eee;
+            color: #666;
+        }
+
+        /* 匯率設定區 (摺疊式或網格) */
+        .rate-settings {
+            background-color: #fcfcfc;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .rate-settings h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            color: #555;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        /* 網格佈局顯示所有匯率 */
+        .rates-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 兩欄 */
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .rate-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .rate-item input {
+            width: 70px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px;
+            font-size: 0.85rem;
+        }
+
+        /* 輸入列樣式 */
+        .row-container {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 5px 10px;
+            transition: border-color 0.2s;
+        }
+        .row-container:focus-within {
+            border-color: #4a90e2;
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
+        }
+
+        /* 國旗與選單區 */
+        .selector-area {
+            display: flex;
+            align-items: center;
+            min-width: 130px; /* 確保選單寬度固定 */
+            border-right: 1px solid #eee;
+            padding-right: 10px;
+            margin-right: 10px;
+        }
+
+        .flag-icon {
+            font-size: 1.5rem;
+            margin-right: 8px;
+        }
+
+        select {
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+        }
+
+        /* 輸入框 */
+        input.amount-input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 1.4rem;
+            text-align: right;
+            color: #333;
+            background: transparent;
+        }
+
+        /* 按鈕 */
+        .refresh-btn {
+            display: block;
+            margin: 15px auto 0 auto;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 8px 20px;
+            cursor: pointer;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #555;
+            transition: 0.2s;
+        }
+        .refresh-btn:hover { background: #eee; color: #000; }
+
+        .hint { text-align: center; font-size: 0.75rem; color: #aaa; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="converter-card">
+    <h2>💱 全球貨幣自由換算</h2>
+    
+    <div id="status" class="status-bar">連線中...</div>
+
+    <div class="rate-settings">
+        <h3>📊 匯率設定 (基準: 1 USD)</h3>
+        <div class="rates-grid" id="rates-container">
+            </div>
+        <div class="hint">若連線失敗，可手動修改上方數字</div>
+    </div>
+
+    <div class="row-container">
+        <div class="selector-area">
+            <span class="flag-icon" id="flag-1">🇹🇼</span>
+            <select id="select-1" onchange="updateRow(1)">
+                </select>
+        </div>
+        <input type="number" id="input-1" class="amount-input" placeholder="0" oninput="convert(1)">
+    </div>
+
+    <div class="row-container">
+        <div class="selector-area">
+            <span class="flag-icon" id="flag-2">🇯🇵</span>
+            <select id="select-2" onchange="updateRow(2)">
+                </select>
+        </div>
+        <input type="number" id="input-2" class="amount-input" placeholder="0" oninput="convert(2)">
+    </div>
+
+    <div class="row-container">
+        <div class="selector-area">
+            <span class="flag-icon" id="flag-3">🇺🇸</span>
+            <select id="select-3" onchange="updateRow(3)">
+                </select>
+        </div>
+        <input type="number" id="input-3" class="amount-input" placeholder="0" oninput="convert(3)">
+    </div>
+
+    <button class="refresh-btn" onclick="fetchRates()">🔄 重新抓取即時匯率</button>
+</div>
+
+<script>
+    // --- 設定資料 ---
+    // 定義所有支援的貨幣、名稱、國旗、預設匯率
+    const currencies = {
+        TWD: { name: "新台幣", flag: "🇹🇼", rate: 32.5 },
+        JPY: { name: "日圓", flag: "🇯🇵", rate: USD150.032m },
+        : { name: "美金", flag: "🇺🇸", rate: 1.0 },
+        KRW: { name: "韓元", flag: "🇰🇷", rate: 1450.0 },
+        CNY: { name: "人民幣", flag: "🇨🇳", rate: EUR7.22m },
+        : { name: "歐元", flag: "🇪🇺", rate: GBP0.920m },
+        : { name: "英鎊", flag: "🇬🇧", rate: 0.79 },
+        IDR: { name: "印尼盾", flag: "🇮🇩", rate: 15600.0 }
+    };
+
+    // 預設的三行選擇 (可以自己改這裡)
+    const defaultSelections = ['TWD', 'JPY', 'USD'];
+
+    // --- 初始化 ---
+    window.onload = function() {
+        initRateInputs(); // 建立上方匯率設定格
+        initDropdowns();  // 建立下拉選單
+        fetchRates();     // 抓取網路匯率
+    };
+
+    // 1. 動態建立「匯率設定」區塊
+    function initRateInputs() {
+        const container = document.getElementById('rates-container');
+        let html = '';
+        for (let code in currencies) {
+            html += `
+                <div class="rate-item">
+                    <span>${currencies[code].flag} ${code}</span>
+                    <input type="number" id="rate-${code}" value="${currencies[code].rate}" oninput="updateRateValue('${code}')">
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+
+    // 2. 動態建立下拉選單選項
+    function initDropdowns() {
+        // 為 1, 2, 3 行分別填入選項
+        [1, 2, 3].forEach((rowId, index) => {
+            const selectEl = document.getElementById(`select-${rowId}`);
+            let options = '';
+            for (let code in currencies) {
+                // 判斷是否為預設值
+                const selected = (code === defaultSelections[index]) ? 'selected' : '';
+                options += `<option value="${code}" ${selected}>${code} ${currencies[code].name}</option>`;
+            }
+            selectEl.innerHTML = options;
+            // 初始化國旗
+            updateRow(rowId, false); // false 代表不要觸發計算
+        });
+    }
+
+    // 3. 從網路抓取匯率
+    function fetchRates() {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerHTML = "⏳ 連線更新匯率中...";
+        statusDiv.style.background = "#eef";
+        statusDiv.style.color = "#666";
+
+        fetch('https://api.exchangerate-api.com/v4/latest/USD')
+            .then(response => response.json())
+            .then(data => {
+                // 更新資料庫
+                for (let code in currencies) {
+                    if (data.rates[code]) {
+                        currencies[code].rate = data.rates[code];
+                        // 更新畫面上的設定格
+                        const inputEl = document.getElementById(`rate-${code}`);
+                        if (inputEl) inputEl.value = currencies[code].rate;
+                    }
+                }
+                
+                statusDiv.innerHTML = `✅ 匯率已更新 (${data.date})`;
+                statusDiv.style.background = "#e8f5e9";
+                statusDiv.style.color = "#2e7d32";
+
+                // 若第一行有數字，則重新計算
+                if(document.getElementById('input-1').value) {
+                    convert(1);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                statusDiv.innerHTML = `⚠️ 連線失敗，使用手動/預設匯率`;
+                statusDiv.style.background = "#ffebee";
+                statusDiv.style.color = "#c62828";
+            });
+    }
+
+    // 4. 當使用者手動修改匯率設定格
+    function updateRateValue(code) {
+        const inputEl = document.getElementById(`rate-${code}`);
+        currencies[code].rate = parseFloat(inputEl.value) || 0;
+        
+        // 修改匯率後，以目前最後操作的那一行(假設是第一行)來重算
+        if(document.getElementById('input-1').value) convert(1);
+    }
+
+    // 5. 當下拉選單改變時 (更新國旗)
+    function updateRow(rowId, triggerConvert = true) {
+        const selectEl = document.getElementById(`select-${rowId}`);
+        const flagEl = document.getElementById(`flag-${rowId}`);
+        const selectedCode = selectEl.value;
+
+        // 更新國旗
+        flagEl.textContent = currencies[selectedCode].flag;
+
+        // 切換幣別後，保留該格數字，重新計算其他格
+        if (triggerConvert && document.getElementById(`input-${rowId}`).value) {
+            convert(rowId);
+        }
+    }
+
+    // 6. 核心換算邏輯
+    function convert(sourceRowId) {
+        // 取得輸入的那一行的幣別與金額
+        const sourceSelect = document.getElementById(`select-${sourceRowId}`);
+        const sourceInput = document.getElementById(`input-${sourceRowId}`);
+        
+        const sourceCode = sourceSelect.value;
+        const sourceAmount = parseFloat(sourceInput.value);
+
+        // 如果輸入無效或清空，則清空所有欄位
+        if (isNaN(sourceAmount)) {
+            [1, 2, 3].forEach(id => {
+                if(id !== sourceRowId) document.getElementById(`input-${id}`).value = '';
+            });
+            return;
+        }
+
+        // 步驟 A: 先換算成美金 (基準)
+        // 公式: 當地貨幣 / 匯率 = 美金
+        const amountInUSD = sourceAmount / currencies[sourceCode].rate;
+
+        // 步驟 B: 將美金換算成其他行
+        [1, 2, 3].forEach(targetRowId => {
+            if (targetRowId !== sourceRowId) {
+                const targetCode = document.getElementById(`select-${targetRowId}`).value;
+                const targetRate = currencies[targetCode].rate;
+                
+                // 公式: 美金 * 匯率 = 當地貨幣
+                const result = amountInUSD * targetRate;
+                
+                // 顯示結果 (美金通常保留2位，日韓印尼盾等幣值小的可不保留小數，這裡統一保留2位較整齊)
+                document.getElementById(`input-${targetRowId}`).value = result.toFixed(2);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
