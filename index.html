@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多國貨幣自由換算</title>
+    <title>即時匯率換算 (CDN穩定版)</title>
     <style>
         body {
             font-family: "Microsoft JhengHei", Arial, sans-serif;
@@ -27,7 +27,6 @@
 
         h2 { text-align: center; color: #333; margin: 0 0 1rem 0; }
 
-        /* 狀態列 */
         .status-bar {
             text-align: center;
             font-size: 0.8rem;
@@ -36,9 +35,9 @@
             border-radius: 5px;
             background-color: #eee;
             color: #666;
+            font-weight: bold;
         }
 
-        /* 匯率設定區 */
         .rate-settings {
             background-color: #fcfcfc;
             border: 1px solid #e0e0e0;
@@ -69,6 +68,7 @@
             border: 1px solid #eee;
             border-radius: 4px;
         }
+        .rate-item span { margin-right: 5px; }
         .rate-item input {
             width: 70px;
             text-align: center;
@@ -78,7 +78,6 @@
             font-size: 0.85rem;
         }
 
-        /* 輸入列 */
         .row-container {
             margin-bottom: 1rem;
             display: flex;
@@ -91,7 +90,6 @@
         }
         .row-container:focus-within {
             border-color: #4a90e2;
-            box-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
         }
 
         .selector-area {
@@ -139,21 +137,20 @@
             transition: 0.2s;
         }
         .refresh-btn:hover { background: #eee; color: #000; }
-
         .hint { text-align: center; font-size: 0.75rem; color: #aaa; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="converter-card">
-    <h2>💱 全球貨幣自由換算</h2>
+    <h2>💱 即時匯率換算 (CDN版)</h2>
     
-    <div id="status" class="status-bar">連線中...</div>
+    <div id="status" class="status-bar">正在下載最新匯率表...</div>
 
     <div class="rate-settings">
-        <h3>📊 匯率設定 (基準: 1 USD)</h3>
+        <h3>📊 匯率設定 (1 USD 為基準)</h3>
         <div class="rates-grid" id="rates-container"></div>
-        <div class="hint">若連線失敗，可直接修改上方數字</div>
+        <div class="hint">資料來源: GitHub Open Currency API</div>
     </div>
 
     <div class="row-container">
@@ -180,23 +177,157 @@
         <input type="number" id="input-3" class="amount-input" placeholder="0" oninput="convert(3)">
     </div>
 
-    <button class="refresh-btn" onclick="fetchRates()">🔄 重新抓取即時匯率</button>
+    <button class="refresh-btn" onclick="fetchRates()">🔄 強制重新下載</button>
 </div>
 
 <script>
-    // --- 支援貨幣 ---
+    // 預設備用 (以防萬一 CDN 掛掉)
+    const backupRates = {
+        TWD32.57m: , JPY: USD155.033m, : 1.0, KRW: 1460.0,
+        7.25CNY2m: , EUR0.950m: , GBP0.810m: , IDR: 16000.0
+    };
+
     const currencies = {
-        TWD: { name: "新台幣", flag: "🇹🇼", rate: 32.5 },
-        JPY: { name: "日圓", flag: "🇯🇵", rate: USD15032m.032m },
-        : { name: "美金", flag: "🇺🇸", rate: 1.0 },
-        KRW: { name: "韓元", flag: "🇰🇷", rate: 1450.0 },
-        CNY: { name: "人民幣", flag: "🇨🇳", rate: EUR7115mm.22m },
-        : { name: "歐元", flag: "🇪🇺", rate: GBP0000mmm.920m },
-        : { name: "英鎊", flag: "🇬🇧", rate: 0.79 },
-        IDR: { name: "印尼盾", flag: "🇮🇩", rate: 15600.0 }
+        TWD: { name: "新台幣", flag: "🇹🇼", rate: backupRates.TWD },
+        JPY: { name: "日圓", flag: "🇯🇵", rate: backupRates.JPY },
+        USD: { name: "美金", flag: "🇺🇸", rate: backupRates.USD },
+        KRW: { name: "韓元", flag: "🇰🇷", rate: backupRates.KRW },
+        CNY: { name: "人民幣", flag: "🇨🇳", rate: backupRates.CNY },
+        EUR: { name: "歐元", flag: "🇪🇺", rate: backupRates.EUR },
+        GBP: { name: "英鎊", flag: "🇬🇧", rate: backupRates.GBP },
+        IDR: { name: "印尼盾", flag: "🇮🇩", rate: backupRates.IDR }
     };
 
     const defaultSelections = ['TWD', 'JPY', 'USD'];
 
     window.onload = function() {
         initRateInputs();
+        initDropdowns();
+        fetchRates();
+    };
+
+    function initRateInputs() {
+        const container = document.getElementById('rates-container');
+        let html = '';
+        for (let code in currencies) {
+            html += `
+                <div class="rate-item">
+                    <span>${currencies[code].flag} ${code}</span>
+                    <input type="number" id="rate-${code}" value="${currencies[code].rate}" oninput="updateRateValue('${code}')">
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+
+    function initDropdowns() {
+        [1, 2, 3].forEach((rowId, index) => {
+            const selectEl = document.getElementById(`select-${rowId}`);
+            let options = '';
+            for (let code in currencies) {
+                const selected = (code === defaultSelections[index]) ? 'selected' : '';
+                options += `<option value="${code}" ${selected}>${code} ${currencies[code].name}</option>`;
+            }
+            selectEl.innerHTML = options;
+            updateRow(rowId, false);
+        });
+    }
+
+    // --- 這裡改用 CDN 方式 ---
+    async function fetchRates() {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerHTML = "📡 連線至全球 CDN 下載資料...";
+        statusDiv.style.background = "#fff3e0";
+        statusDiv.style.color = "#e65100";
+
+        // 這是一個純文字檔，不是 API，所以不會被擋
+        // 使用 jsDelivr CDN 加速
+        const apiUrl = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json';
+
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error("下載失敗");
+
+            const data = await response.json();
+            
+            // 資料格式是小寫的，例如 data.usd.twd
+            // 我們需要把這些資料填回我們的 currencies 物件
+            const ratesData = data.usd; 
+
+            for (let code in currencies) {
+                // 將代碼轉小寫來對應資料 (如 'TWD' -> 'twd')
+                let lowerCode = code.toLowerCase();
+                if (ratesData[lowerCode]) {
+                    currencies[code].rate = ratesData[lowerCode];
+                    
+                    // 更新畫面上方的小框框
+                    const inputEl = document.getElementById(`rate-${code}`);
+                    if (inputEl) inputEl.value = currencies[code].rate;
+                }
+            }
+
+            statusDiv.innerHTML = `✅ 匯率更新成功 (${data.date})`;
+            statusDiv.style.background = "#e8f5e9";
+            statusDiv.style.color = "#2e7d32";
+
+            // 觸發重算
+            if(document.getElementById('input-1').value) convert(1);
+
+        } catch (error) {
+            console.error("CDN Error:", error);
+            statusDiv.innerHTML = `⚠️ 無法下載，已切換至離線模式`;
+            statusDiv.style.background = "#ffebee";
+            statusDiv.style.color = "#c62828";
+        }
+    }
+
+    function updateRateValue(code) {
+        const inputEl = document.getElementById(`rate-${code}`);
+        currencies[code].rate = parseFloat(inputEl.value) || 0;
+        if(document.getElementById('input-1').value) convert(1);
+    }
+
+    function updateRow(rowId, triggerConvert = true) {
+        const selectEl = document.getElementById(`select-${rowId}`);
+        const flagEl = document.getElementById(`flag-${rowId}`);
+        const selectedCode = selectEl.value;
+        flagEl.textContent = currencies[selectedCode].flag;
+        if (triggerConvert && document.getElementById(`input-${rowId}`).value) {
+            convert(rowId);
+        }
+    }
+
+    function convert(sourceRowId) {
+        const sourceSelect = document.getElementById(`select-${sourceRowId}`);
+        const sourceInput = document.getElementById(`input-${sourceRowId}`);
+        const sourceCode = sourceSelect.value;
+        const sourceAmount = parseFloat(sourceInput.value);
+
+        if (isNaN(sourceAmount)) {
+            [1, 2, 3].forEach(id => {
+                if(id !== sourceRowId) document.getElementById(`input-${id}`).value = '';
+            });
+            return;
+        }
+
+        const amountInUSD = sourceAmount / currencies[sourceCode].rate;
+
+        [1, 2, 3].forEach(targetRowId => {
+            if (targetRowId !== sourceRowId) {
+                const targetCode = document.getElementById(`select-${targetRowId}`).value;
+                const targetRate = currencies[targetCode].rate;
+                const result = amountInUSD * targetRate;
+                
+                const noDecimal = ['JPY', 'KRW', 'IDR'];
+                if (noDecimal.includes(targetCode)) {
+                    document.getElementById(`input-${targetRowId}`).value = Math.round(result);
+                } else {
+                    document.getElementById(`input-${targetRowId}`).value = result.toFixed(2);
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
